@@ -67,21 +67,24 @@ class ParticleSwarmTSP(TravelingSalesmanProblem):
         particles, velocities = self.initialize_particles()  # 初始化粒子
         personal_bests = particles.copy()  # 每個粒子的最佳位置
         personal_best_fitness = [self.fitness_function(p) for p in particles]  # 每個粒子的最佳適應度
-        global_best = personal_bests[np.argmin(personal_best_fitness)]  # 全局最佳位置
-        global_best_fitness = min(personal_best_fitness)  # 全局最佳適應度
+        global_best = personal_bests[np.argmax(personal_best_fitness)]  # 全局最佳位置
+        global_best_fitness = max(personal_best_fitness)  # 全局最佳適應度
 
+        self.path_history = []  # 儲存路徑歷史
         for generation in tqdm(range(self.generations), desc="Running PSO", leave=False, position=1):
             # tqdm.write(f"Generation {generation}: Best Fitness so far: {global_best_fitness}")
             for i in range(self.population_size):
                 velocities[i] = self.update_velocity(velocities[i], particles[i], personal_bests[i], global_best)
                 particles[i] = self.update_position(particles[i], velocities[i])
                 fitness = self.fitness_function(particles[i])  # 計算適應度
-                if fitness < personal_best_fitness[i]:
+                if fitness > personal_best_fitness[i]:
                     personal_bests[i] = particles[i]
                     personal_best_fitness[i] = fitness
-                if fitness < global_best_fitness:
+                if fitness > global_best_fitness:
                     global_best = particles[i]
                     global_best_fitness = fitness
+
+            self.path_history.append((self.distance(global_best), global_best.copy()))  # 儲存當前全局最佳路徑
 
         global_best = [int(i) for i in global_best]  # 將最佳路徑轉換為列表格式
         return global_best  # 返回最佳路徑及其適應度

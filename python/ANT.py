@@ -13,23 +13,25 @@ class AntColonyTSP(TravelingSalesmanProblem):
         self.evaporation_rate = evaporation_rate  # 信息素的揮發率
         self.pheromone = np.ones((self.num_cities, self.num_cities))  # 初始化信息素矩陣
 
-    def run_init(self):
-        # 初始化最佳路徑和距離
-        self.best_path = None
-        self.best_distance = float('inf')
-
     def run(self):
         # 主程式：執行螞蟻演算法
         best_path = None  # 最佳路徑
         best_distance = float('inf')  # 最佳距離（最低距離）
+        best_fitness = 0 # 最佳適應度
+
+        self.path_history = []  # 儲存路徑歷史
         for _ in tqdm(range(self.generations), desc="Running Ant Colony Optimization", leave=False, position=1):
             paths = self.construct_solutions()  # 建構所有螞蟻的解（路徑）
             self.update_pheromone(paths)  # 更新信息素
             for path in paths:
-                distance = self.fitness_function(path)  # 計算路徑的距離
-                if distance < best_distance:  # 更新最佳路徑
+                distance = self.distance(path)  # 計算路徑的距離
+                fitness = self.fitness_function(path)  # 計算路徑的適應度
+                if fitness > best_fitness:  # 更新最佳路徑
+                    best_fitness = fitness
                     best_distance = distance
                     best_path = path
+
+            self.path_history.append((best_distance,best_path.copy()))  # 儲存當前最佳路徑
 
         best_path = [int(i) for i in best_path]  # 將最佳路徑轉換為列表格式
         return best_path  # 返回最佳路徑及其距離
@@ -71,9 +73,9 @@ class AntColonyTSP(TravelingSalesmanProblem):
         # 更新信息素矩陣
         self.pheromone *= (1 - self.evaporation_rate)  # 信息素揮發
         for path in paths:
-            distance = self.fitness_function(path)  # 計算路徑的距離
+            fitness = self.fitness_function(path)
             for i in range(len(path) - 1):
-                self.pheromone[path[i]][path[i + 1]] += 1 / distance  # 根據路徑距離增加信息素
+                self.pheromone[path[i]][path[i + 1]] += fitness  # 根據路徑距離增加信息素
 
 if __name__ == "__main__":
     from dataset import read_tsp_files

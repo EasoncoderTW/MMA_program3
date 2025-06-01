@@ -3,8 +3,8 @@ from tqdm import tqdm
 from TSP import TravelingSalesmanProblem
 
 class GeneticAlgorithmTSP(TravelingSalesmanProblem):
-    def __init__(self, coordinates, population_size, generations, mutation_rate, num_elites=5, crossover_type="OX"):
-        super().__init__(coordinates, population_size, generations)
+    def __init__(self, coordinates, population_size, generations, mutation_rate, calculate_distances=None,num_elites=5, crossover_type="OX"):
+        super().__init__(coordinates, population_size, generations, calculate_distances)
         self.mutation_rate = mutation_rate
         self.num_elites = num_elites
         self.crossover_type = crossover_type
@@ -13,9 +13,12 @@ class GeneticAlgorithmTSP(TravelingSalesmanProblem):
         return [np.random.permutation(self.num_cities) for _ in range(self.population_size)]
 
     def select_parents(self, population):
-        fitness_values = [1 / self.fitness_function(ind) for ind in population]
-        probabilities = fitness_values / np.sum(fitness_values)
-        indices = np.random.choice(range(self.population_size), size=2, p=probabilities)
+        fitness_values = [self.fitness_function(ind) for ind in population]
+        if np.sum(fitness_values) == 0:
+            indices = np.random.choice(range(self.population_size), size=2)
+        else:
+            probabilities = fitness_values / np.sum(fitness_values)
+            indices = np.random.choice(range(self.population_size), size=2, p=probabilities)
         return [population[i] for i in indices]
 
     def crossover(self, parent1, parent2):
@@ -73,7 +76,7 @@ class GeneticAlgorithmTSP(TravelingSalesmanProblem):
                     if j - i == 1:
                         continue
                     new_route = route[:i] + route[i:j][::-1] + route[j:]
-                    if self.fitness_function(new_route) < self.fitness_function(best):
+                    if self.fitness_function(new_route) > self.fitness_function(best):
                         best = new_route
                         improved = True
             route = best
@@ -81,11 +84,12 @@ class GeneticAlgorithmTSP(TravelingSalesmanProblem):
 
     def run(self):
         population = self.initialize_population()
-        best_individual = None
-        best_fitness = float('inf')
+        best_individual = []
+        best_fitness = 0
 
+        self.path_history = []  # 儲存路徑歷史
         for generation in tqdm(range(self.generations), desc="Running Genetic Algorithm", leave=False):
-            population.sort(key=self.fitness_function)
+            population.sort(key=self.fitness_function, reverse=True)
             elites = population[:self.num_elites]
 
             new_population = elites.copy()
@@ -99,9 +103,11 @@ class GeneticAlgorithmTSP(TravelingSalesmanProblem):
 
             for individual in population:
                 fitness = self.fitness_function(individual)
-                if fitness < best_fitness:
+                if best_fitness == float('inf') or fitness > best_fitness:
                     best_fitness = fitness
-                    best_individual = individual
+                    best_individual = individual.copy()
+
+            self.path_history.append((self.distance(best_individual),best_individual.copy()))  # 儲存當前最佳路徑
 
             # 動態調整突變率
             self.mutation_rate = max(0.01, self.mutation_rate * 0.99)
@@ -110,7 +116,6 @@ class GeneticAlgorithmTSP(TravelingSalesmanProblem):
         best_individual = self.two_opt(best_individual)
         best_individual = [int(i) for i in best_individual]
         return best_individual
-
 
 if __name__ == "__main__":
     from dataset import read_tsp_files
