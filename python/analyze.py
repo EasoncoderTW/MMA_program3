@@ -4,6 +4,7 @@ import matplotlib.pyplot as plt
 import json
 import os
 from tqdm import tqdm
+import pandas as pd
 
 # Read history of paths from a json file
 def read_history(filename):
@@ -113,7 +114,89 @@ def analyze_tsp_history():
             ))
 
 
+def plot_statistics():
+    part_1_csv = [f for f in os.listdir('../output/csv') if f.endswith('_part1_results.csv')]
+    part_2_csv = [f for f in os.listdir('../output/csv') if f.endswith('_part2_results.csv')]
+
+    part_1_df_list = [pd.read_csv(os.path.join('../output/csv', filename)) for filename in part_1_csv]
+    part_2_df_list = [pd.read_csv(os.path.join('../output/csv', filename)) for filename in part_2_csv]
+
+    part_1_df = pd.concat(part_1_df_list, ignore_index=True)
+    part_2_df = pd.concat(part_2_df_list, ignore_index=True)
+
+    # columns = [Algorithm,Cities,Best Distance,Best Fitness,Average Distance,Computation Time]
+    # Plotting Part 1 Statistics
+    # 1. Best Distance of 12,36,52 cities in different algorithms case
+    # 2. Average Distance of 12,36,52 cities in different algorithms case
+    # 3. Computation Time of 12,36,52 cities in different algorithms case
+
+    metrics = ['Best Distance', 'Average Distance', 'Computation Time']
+    filenames = ['best_distance_part1.png', 'average_distance_part1.png', 'computation_time_part1.png']
+    y_labels = ['Best Distance', 'Average Distance', 'Computation Time (seconds)']
+    titles = [
+        'Best Distance for Different Algorithms and Cities',
+        'Average Distance for Different Algorithms and Cities',
+        'Computation Time for Different Algorithms and Cities'
+    ]
+
+    for metric, filename, y_label, title in zip(metrics, filenames, y_labels, titles):
+        plt.figure(figsize=(12, 6))
+        width = 0.25  # Width of each bar
+        part_1_df = part_1_df.sort_values(by='Algorithm')  # Sort by Algorithm for better visibility
+        algorithms = part_1_df['Algorithm'].unique()
+        x = np.arange(len(algorithms))  # X positions for the bars
+
+        colors = plt.get_cmap('tab10', len([52, 36, 12]))  # Use a colormap for better distinction
+
+        for i, cities in enumerate([52, 36, 12]):  # inverse order for better visibility
+            subset = part_1_df[part_1_df['Cities'] == cities]
+            plt.bar(x + i * width, subset[metric], width=width, label=f'{metric} {cities} Cities', color=colors(i))
+
+        plt.title(title)
+        plt.xlabel('Algorithm')
+        plt.ylabel(y_label)
+        plt.xticks(x + width, algorithms, rotation=45)  # Adjust x-ticks to align with grouped bars
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(f'../output/figures/{filename}')
+        plt.close()
+
+    # Plotting Part 2 Statistics
+    # 1. Best Distance of 36 cities in different algorithms case
+    # 2. Average Distance of 36 cities in different algorithms case
+    # 3. Computation Time of 36 cities in different algorithms case
+    metrics = ['Best Distance', 'Average Distance', 'Computation Time']
+    filenames = ['best_distance_part2.png', 'average_distance_part2.png', 'computation_time_part2.png']
+    y_labels = ['Best Distance', 'Average Distance', 'Computation Time (seconds)']
+    titles = [
+        'Best Distance for Different Algorithms with 36 Cities',
+        'Average Distance for Different Algorithms with 36 Cities',
+        'Computation Time for Different Algorithms with 36 Cities'
+    ]
+    for metric, filename, y_label, title in zip(metrics, filenames, y_labels, titles):
+        plt.figure(figsize=(12, 6))
+        width = 0.25  # Width of each bar
+        part_2_df = part_2_df.sort_values(by='Algorithm')  # Sort by Algorithm for better visibility
+        algorithms = part_2_df['Algorithm'].unique()
+        x = np.arange(len(algorithms))  # X positions for the bars
+
+        colors = plt.get_cmap('tab10', len(part_2_df['Cities'].unique()))  # Use a colormap for better distinction
+
+        for i, cities in enumerate(part_2_df['Cities'].unique()):  # Iterate through unique cities
+            subset = part_2_df[part_2_df['Cities'] == cities]
+            plt.bar(x + i * width, subset[metric], width=width, label=f'{metric} {cities} Cities', color=colors(i))
+
+        plt.title(title)
+        plt.xlabel('Algorithm')
+        plt.ylabel(y_label)
+        plt.xticks(x + width, algorithms, rotation=45)  # Adjust x-ticks to align with grouped bars
+        plt.legend()
+        plt.tight_layout()
+        plt.savefig(f'../output/figures/{filename}')
+        plt.close()
+
 
 if __name__ == "__main__":
-    analyze_tsp_history()
+    # analyze_tsp_history()
+    plot_statistics()
     print("Analysis complete. Check the output figures for fitness history.")
